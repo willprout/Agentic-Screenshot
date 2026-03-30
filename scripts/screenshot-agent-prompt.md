@@ -28,7 +28,7 @@ Create a Trello card on the **{{TRELLO_TARGET_LIST}}** list.
 - First call `set_active_board` with "{{TRELLO_BOARD_NAME}}"
 - Then call `get_lists` to get the {{TRELLO_TARGET_LIST}} list ID
 - Apply label based on context:
-  - **Work** (blue) — work tasks, requests from colleagues
+  - **Work** (blue) — work tasks, requests from colleagues, screenshots from slack
   - **Personal** (green) — personal tasks, errands
   - **Errands** (orange) — shopping, pickups, appointments to schedule
 - Attach the screenshot image to the card using `attach_image_to_card`

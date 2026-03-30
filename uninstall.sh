@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BOLD='\033[1m'
+DIM='\033[2m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
@@ -38,11 +39,22 @@ if [ -f "$HAMMERSPOON_INIT" ]; then
     fi
 fi
 
+# Remove iOS bridge (launchd plist)
+PLIST_NAME="com.user.screenshot-watcher"
+PLIST_PATH="$HOME/Library/LaunchAgents/$PLIST_NAME.plist"
+if [ -f "$PLIST_PATH" ]; then
+    launchctl bootout "gui/$(id -u)/$PLIST_NAME" 2>/dev/null || true
+    rm -f "$PLIST_PATH"
+    echo -e "  ${GREEN}✓${NC} Removed iOS bridge (launchd watcher)"
+fi
+
 # Clean up temp files
 rm -rf /tmp/claude-screenshot-capture
 rm -f /tmp/claude-screenshot-result.txt
+rm -f /tmp/screenshot-watcher.log
 echo -e "  ${GREEN}✓${NC} Cleaned up temp files"
 
 echo ""
 echo -e "${GREEN}${BOLD}Uninstalled.${NC} Hammerspoon and Claude CLI were left in place."
+echo -e "  ${DIM}Note: The iCloud Drive/Agentic-screenshots/ folder was left in place.${NC}"
 echo ""

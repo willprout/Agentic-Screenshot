@@ -126,6 +126,38 @@ fi
 
 echo ""
 
+# ─── iOS Bridge Setup ───────────────────────────────────
+echo -e "${BOLD}iOS Bridge (Optional)${NC}"
+echo ""
+echo "  Send screenshots from your iPhone to the same pipeline."
+echo "  Requires an iOS Shortcut that saves images to iCloud Drive."
+echo ""
+read -p "  Enable iOS screenshot bridge? (y/n) " -n 1 -r
+echo ""
+
+ENABLE_IOS=false
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    ENABLE_IOS=true
+    ICLOUD_WATCH_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Agentic-screenshots"
+    mkdir -p "$ICLOUD_WATCH_DIR"
+    echo -e "  ${GREEN}✓${NC} Created iCloud folder: ~/iCloud Drive/Agentic-screenshots/"
+    echo ""
+    echo -e "  ${YELLOW}iPhone Setup:${NC}"
+    echo "  1. Open the Shortcuts app on your iPhone"
+    echo "  2. Create a new shortcut with these actions:"
+    echo "     a) Receive: Share Sheet input (Images)"
+    echo "     b) Save File to: iCloud Drive/Agentic-screenshots/"
+    echo "        (disable 'Ask Where to Save')"
+    echo "     c) (Optional) Play Haptic: Success"
+    echo "  3. Name it 'Screenshot to Action'"
+    echo "  4. Enable 'Show in Share Sheet'"
+    echo ""
+    echo "  Then share any screenshot from Photos → Screenshot to Action."
+    echo ""
+fi
+
+echo ""
+
 # ─── Install ─────────────────────────────────────────────
 echo -e "${BOLD}Installing to $INSTALL_DIR ...${NC}"
 
@@ -161,6 +193,30 @@ done
 
 chmod +x "$INSTALL_DIR/screenshot-capture.sh"
 chmod +x "$INSTALL_DIR/screenshot-process.sh"
+
+# Install iOS bridge if enabled
+if [ "$ENABLE_IOS" = true ]; then
+    sed \
+        -e "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" \
+        "$SCRIPT_DIR/scripts/icloud-screenshot-watcher.sh" > "$INSTALL_DIR/icloud-screenshot-watcher.sh"
+    chmod +x "$INSTALL_DIR/icloud-screenshot-watcher.sh"
+
+    # Create and load launchd plist
+    PLIST_NAME="com.user.screenshot-watcher"
+    PLIST_PATH="$HOME/Library/LaunchAgents/$PLIST_NAME.plist"
+    mkdir -p "$HOME/Library/LaunchAgents"
+
+    # Unload existing plist if present
+    launchctl bootout "gui/$(id -u)/$PLIST_NAME" 2>/dev/null || true
+
+    sed \
+        -e "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" \
+        -e "s|{{ICLOUD_WATCH_DIR}}|$ICLOUD_WATCH_DIR|g" \
+        "$SCRIPT_DIR/templates/com.user.screenshot-watcher.plist" > "$PLIST_PATH"
+
+    launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
+    echo -e "  ${GREEN}✓${NC} iOS bridge installed (launchd watcher active)"
+fi
 
 # Set up Hammerspoon hotkey
 HAMMERSPOON_DIR="$HOME/.hammerspoon"
@@ -198,6 +254,9 @@ echo "  Scripts:   $INSTALL_DIR/"
 echo "  Board:     $TRELLO_BOARD_NAME → $TRELLO_TARGET_LIST list"
 echo "  Work cal:  $WORK_CALENDAR_ID"
 echo "  Personal:  $PERSONAL_CALENDAR_ID"
+if [ "$ENABLE_IOS" = true ]; then
+echo "  iOS:       Enabled (watching ~/iCloud Drive/Agentic-screenshots/)"
+fi
 echo ""
 echo -e "  ${BOLD}Try it now:${NC} Press $HOTKEY_DESC to capture a screenshot."
 echo ""
